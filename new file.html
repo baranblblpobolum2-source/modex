@@ -286,6 +286,7 @@
     </div>
   </div>
 
+  <!-- BİRİNCİL SCRIPT SİSTEMLERİ -->
   <script>
     function toggleAiChat() {
       const box = document.getElementById('aiChatBox');
@@ -317,20 +318,16 @@
     let pendingAction = null;
     let currentUserSession = null;
     let isAdminSession = false;
-    let loadedProductsMap = {}; // Global ürün verilerini detaylar için saklama alanı
+    let loadedProductsMap = {}; 
 
-    // HER DURUMDA AÇILIŞTA EKRANDA YER ALACAK ÖRNEK ÜRÜNLER (FALLBACK)
     const fallbackProducts = [
       { id: "sample1", name: "Oversize Cyberpunk Hoodie", price: 1250, stock: 15, description: "Fütüristik neon detaylar ve ultra kalın pamuk kumaş yapısıyla modeX sokak stilinin en iddialı parçası! 🌌", images: ["https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=600&q=80"] },
       { id: "sample2", name: "Gothic Cargo Pantolon", price: 1400, stock: 8, description: "Geniş cepler, metal zincir aksesuarları ve rahat kesimi ile hem konforlu hem de fazlasıyla asi. ⛓️", images: ["https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=600&q=80"] },
       { id: "sample3", name: "Retro-Future Grafik Tişört", price: 650, stock: 25, description: "Yıkanmış vintage kumaş üzerine yüksek kaliteli dijital modeX baskı. Tarzını hemen konuştur! ⚡", images: ["https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80"] }
     ];
 
-    // AÇILIŞ EKRANI BİTTİKTEN SONRA SAYFANIN KİLİDİNİ KALDIRIR VE VİTRİNİ DOLDURUR
     window.addEventListener('load', () => {
-      // Firebase'den bağımsız olarak ilk aşamada örnek vitrini hemen dolduruyoruz
       renderFallbackUI();
-
       setTimeout(() => {
         const splash = document.getElementById('splashScreen');
         if(splash) {
@@ -344,13 +341,12 @@
       const grid = document.getElementById('productGrid');
       const adminList = document.getElementById('adminProductList');
       
-      // Eğer Firebase henüz yükleme yapmadıysa vitrin boş kalmasın diye dolduruyoruz
       if (grid && grid.children.length === 0) {
         grid.innerHTML = "";
         if(adminList) adminList.innerHTML = "";
         
         fallbackProducts.forEach(p => {
-          loadedProductsMap[p.id] = p; // Global haritaya ekle
+          loadedProductsMap[p.id] = p; 
           renderCard(p.id, p);
           renderAdminRow(p.id, p);
         });
@@ -434,13 +430,14 @@
     }
   </script>
 
-  <!-- FIREBASE VE KONTROL YAPISI -->
+  <!-- ================= FIREBASE AUTH VE DB ENTEGRASYONU ================= -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, setDoc, getDocs, doc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+    // Kendi Firebase Config Bilgilerinizi Girin
     const firebaseConfig = {
       apiKey: "BURAYA_KENDI_API_KEY_YAZ",
       authDomain: "modex-ebfc8.firebaseapp.com",
@@ -463,6 +460,7 @@
     const adminReturnBtn = document.getElementById('adminReturnBtn');
     const adminPanel = document.getElementById('adminPanel');
 
+    // AKTİF OTURUM TAKİBİ
     onAuthStateChanged(auth, async (user) => {
       if (user && !isAdminSession) {
         currentUserSession = user;
@@ -484,10 +482,17 @@
       loadProductsAndUsers();
     });
 
+    // MÜŞTERİ GOOGLE GİRİŞ TETİKLEYİCİSİ (ÇALIŞAN HALİ)
     document.getElementById('authGoogleBtn').addEventListener('click', async () => {
-      try { await signInWithPopup(auth, provider); } catch(e){}
+      try { 
+        await signInWithPopup(auth, provider); 
+        closeAuthModal();
+      } catch(error){
+        alert("Google Giriş Hatası: " + error.message);
+      }
     });
 
+    // YÖNETİCİ ŞİFRELİ GİRİŞ SİSTEMİ
     document.getElementById('adminLoginSubmitBtn').addEventListener('click', () => {
       const u = document.getElementById('adminEmailInput').value.trim();
       const p = document.getElementById('adminPasswordInput').value.trim();
@@ -525,7 +530,6 @@
         const querySnapshot = await getDocs(collection(db, "products"));
         if (querySnapshot.size === 0) {
           for (const prod of fallbackProducts) { 
-            // id'siz haliyle veritabanına ekle
             const { id, ...firebaseProd } = prod;
             await addDoc(collection(db, "products"), { ...firebaseProd, createdAt: new Date() }); 
           }
@@ -580,7 +584,7 @@
         if (querySnapshot.size > 0) {
           const grid = document.getElementById('productGrid'); const adminList = document.getElementById('adminProductList');
           if(grid) grid.innerHTML = ""; if(adminList) adminList.innerHTML = "";
-          loadedProductsMap = {}; // Eşlemeyi temizle ve Firebase verileriyle doldur
+          loadedProductsMap = {}; 
 
           querySnapshot.forEach((doc) => {
             const data = doc.data();
@@ -590,9 +594,7 @@
             renderAdminRow(doc.id, data);
           });
         }
-      } catch (e) {
-        // Hata durumunda zaten local fallback tetiklendiği için sessiz kalıyoruz.
-      }
+      } catch (e) {}
     }
 
     window.updateStockClick = async (id, amount) => {
@@ -617,10 +619,10 @@
       } else { const m = document.getElementById('productDetailModal'); if(m) m.classList.add('hidden'); }
     }
     window.addEventListener('hashchange', checkUrlHash);
-    // İlk açılışta da tetiklenmesi için:
     setTimeout(checkUrlHash, 2000);
   </script>
 
+  <!-- YAN SCRIPT BİLEŞENLERİ -->
   <script>
     function addToCart(id, name, price, img, maxStock) {
       const existing = cart.find(item => item.id === id);
